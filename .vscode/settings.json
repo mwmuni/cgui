@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.ps1": "powershell",
+        "*.spec": "python",
+        "*.bat": "bat",
+        "*.cmd": "bat",
+        "windows.h": "c",
+        "*.rh": "c"
+    }
+}

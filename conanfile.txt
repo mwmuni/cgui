@@ -1,0 +1,12 @@
+[requires]
+zlib/1.2.11
+glad/0.1.36
+opengl/system
+glu/system
+glew/2.2.0
+glfw/3.4
+glm/cci.20230113
+
+[generators]
+CMakeDeps
+CMakeToolchain
