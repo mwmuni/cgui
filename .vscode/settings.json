@@ -5,6 +5,8 @@
         "*.bat": "bat",
         "*.cmd": "bat",
         "windows.h": "c",
-        "*.rh": "c"
+        "*.rh": "c",
+        "math.h": "c",
+        "corecrt_math_defines.h": "c"
     }
 }

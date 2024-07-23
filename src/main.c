@@ -5,11 +5,31 @@
 
 #include <glad/glad.h>
 #include <windows.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 // Define button identifiers
 #define ID_BUTTON_OK 1
 #define ID_BUTTON_QUIT 2
 #define ID_BUTTON_GENERATE 3
+
+#define IMG_WIDTH 100
+#define IMG_WIDTH_2 50
+#define IMG_HEIGHT 100
+#define IMG_HEIGHT_2 50
+
+// Define the center of the crescent
+#define centerX IMG_WIDTH_2
+#define centerY IMG_HEIGHT_2
+
+// Define the radius of the crescent
+#define radius 20
+#define leftLimit (centerX - radius)
+#define rightLimit (centerX + radius)
+#define topLimit (centerY - radius)
+#define bottomLimit centerY
+
+#define width (rightLimit - leftLimit + 1)
 
 // Custom window procedure declaration
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -21,13 +41,114 @@ HDC memDC;
 BITMAPINFO bmi;
 
 void generateRandomImage() {
-    for (int i = 0; i < 100; ++i) {
-        for (int j = 0; j < 100; ++j) {
+    for (int i = 0; i < IMG_HEIGHT; ++i) { // Height
+        for (int j = 0; j < IMG_WIDTH; ++j) { // Width
             image[i][j][0] = rand() % 256; // Red
             image[i][j][1] = rand() % 256; // Green
             image[i][j][2] = rand() % 256; // Blue
         }
     }
+}
+
+void generateCrescentImage() {
+    for (int i = 0; i < IMG_HEIGHT; ++i) {
+        for (int j = 0; j < IMG_WIDTH; ++j) {
+            image[i][j][0] = 0; // Red
+            image[i][j][1] = 0; // Green
+            image[i][j][2] = 0; // Blue
+        }
+    }
+
+    // Generate a crescent shape using two sine functions
+
+    // Define the color of the crescent
+    const unsigned char color[3] = {255, 255, 255};
+
+    // Generate the crescent shape
+
+    const int crescentStart[2] = {centerX - radius, centerY};
+    const int crescentEnd[2] = {centerX + radius, centerY};
+
+    // We want 0 to pi to define the region of the sine function to use
+    // We will define an upper and lower bound for the region by using two sine functions
+    // The upper bound will simply be the first sine function * 1.2
+    // The lower bound will be the first sine function
+
+    // The highest point of the crescent will be at pi/2 for the upper bound
+    // The lowest point of the crescent will be at 0 and pi for both the upper and lower bounds
+
+    float xMap[width];
+
+    const float pi_step = M_PI / (rightLimit - leftLimit);
+
+    // Precompute the X values
+    for (int i = leftLimit; i <= rightLimit; ++i) {
+        xMap[i - leftLimit] = pi_step * (i-leftLimit);
+    }
+
+    // Precompute the Y values for the upper bound
+    float upperBound[rightLimit - leftLimit + 1];
+    for (int i = leftLimit; i <= rightLimit; ++i) {
+        upperBound[i - leftLimit] = centerY - radius * sin(xMap[i - leftLimit]) * 0.8;
+    }
+
+    // Precompute the Y values for the lower bound
+    float lowerBound[rightLimit - leftLimit + 1];
+    for (int i = leftLimit; i <= rightLimit; ++i) {
+        lowerBound[i - leftLimit] = centerY - radius * sin(xMap[i - leftLimit]);
+    }
+
+    for (int i = leftLimit; i <= rightLimit; ++i) {
+        for (int j = topLimit; j <= bottomLimit; ++j) {
+            // We need to determine if the current pixel is within the crescent shape
+            // We can do this by checking if the current pixel is within the bounds of the crescent
+
+            // Check if the current pixel is within the bounds of the crescent
+            if (j >= lowerBound[i - leftLimit] && j <= upperBound[i - leftLimit])
+            {
+                image[j][i][0] = color[0];
+                image[j][i][1] = color[1];
+                image[j][i][2] = color[2];
+            }
+        }
+    }
+
+    // Make the start and end points of the crescent black
+    image[crescentStart[1]][crescentStart[0]][0] = 0;
+    image[crescentStart[1]][crescentStart[0]][1] = 0;
+    image[crescentStart[1]][crescentStart[0]][2] = 0;
+
+    image[crescentEnd[1]][crescentEnd[0]][0] = 0;
+    image[crescentEnd[1]][crescentEnd[0]][1] = 0;
+    image[crescentEnd[1]][crescentEnd[0]][2] = 0;
+}
+
+void addIris() {
+    // Define the center of the iris
+    const int irisCenter[2] = {centerX, centerY};
+
+    // Define the radius of the iris
+    const int irisRadius = 10;
+
+    // Define the color of the iris
+    const unsigned char color[3] = {255, 255, 255};
+
+    // Generate the iris shape
+    for (int i = 0; i < IMG_HEIGHT; ++i) {
+        for (int j = 0; j < IMG_WIDTH; ++j) {
+            // We need to determine if the current pixel is within the iris shape
+            // We can do this by checking if the current pixel is within the bounds of the iris
+
+            // Check if the current pixel is within the bounds of the iris
+            if ((i - irisCenter[1]) * (i - irisCenter[1]) + (j - irisCenter[0]) * (j - irisCenter[0]) <= irisRadius * irisRadius)
+            {
+                image[i][j][0] = color[0];
+                image[i][j][1] = color[1];
+                image[i][j][2] = color[2];
+            }
+        }
+    }
+
 }
 
 void renderImage(HWND hwnd) {
@@ -107,7 +228,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     break;
                 case ID_BUTTON_GENERATE:
                     // Handle Generate button click
-                    generateRandomImage();
+                    if (rand() % 100 != 0) {
+                        generateRandomImage();
+                    } else {
+                        generateCrescentImage();
+                        addIris();
+                    }
                     renderImage(hwnd);
                     break;
             }
