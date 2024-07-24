@@ -38,6 +38,7 @@
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 unsigned char image[100][100][3];
+const char g_szClassName[] = "Conan";
 HBITMAP bitmap;
 HDC memDC;
 BITMAPINFO bmi;
@@ -81,13 +82,11 @@ void setPixel(int x, int y, unsigned char r, unsigned char g, unsigned char b) {
     }
 }
 
-
 int generateRandomBlock(void* arg) {
     struct thread_data* data = (struct thread_data*)arg;
     int* keepThreadAlive = data->keepThreadAlive;
     int* generationMode = data->generationMode;
-    
-    
+
     while (*keepThreadAlive) {
         if (*generationMode == GENERATION_MODE_BATCH) {
             for (int i = 0; i < BATCH_SIZE; ++i) {
@@ -103,7 +102,7 @@ int generateRandomBlock(void* arg) {
             __m256i zero = _mm256_setzero_si256();
             __m256i max_val = _mm256_set1_epi32(255);
             int rand_buffer[8];
-            
+
             for (int i = 0; i < BLOCK_WIDTH; ++i) {
                 for (int j = 0; j < BLOCK_HEIGHT; j += 8) {
                     for (int k = 0; k < 3; ++k) {
@@ -113,9 +112,9 @@ int generateRandomBlock(void* arg) {
                         );
                         random_values = _mm256_max_epu8(random_values, zero);
                         random_values = _mm256_min_epu8(random_values, max_val);
-                        
+
                         _mm256_storeu_si256((__m256i*)rand_buffer, random_values);
-                        
+
                         for (int l = 0; l < 8; ++l) {
                             int r = rand_buffer[l];
                             int g = rand_buffer[(l + 1) % 8];
@@ -219,23 +218,61 @@ void addIris() {
     }
 }
 
-void createWindow(void) {
-    WNDCLASS wc = {0};
+// Main function
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+    WNDCLASSEX wc = {0};
+    wc.cbSize = sizeof(WNDCLASSEX);
     wc.lpfnWndProc = WindowProc;
-    wc.hInstance = GetModuleHandle(NULL);
+    wc.hInstance = hInstance;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.lpszClassName = "Conan";
-    RegisterClass(&wc);
+    wc.lpszClassName = g_szClassName;
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
 
-    HWND window = CreateWindow(wc.lpszClassName, "Conan", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 0, 0, 800, 600, 0, 0, wc.hInstance, 0);
-    CreateWindow("BUTTON", "OK", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 10, 100, 30, window, (HMENU)ID_BUTTON_OK, wc.hInstance, 0);
-    CreateWindow("EDIT", "Hello, World!", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE, 10, 50, 200, 100, window, 0, wc.hInstance, 0);
-    CreateWindow("BUTTON", "Quit", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 160, 100, 30, window, (HMENU)ID_BUTTON_QUIT, wc.hInstance, 0);
-    CreateWindow("BUTTON", "Generate", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 200, 100, 30, window, (HMENU)ID_BUTTON_GENERATE, wc.hInstance, 0);
-    CreateWindow("BUTTON", "Toggle Thread", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 240, 100, 30, window, (HMENU)ID_BUTTON_TOGGLE_BLOCK_THREAD, wc.hInstance, 0);
-    CreateWindow("BUTTON", "Toggle Random Type", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 280, 100, 30, window, (HMENU)ID_BUTTON_TOGGLE_GEN_TYPE, wc.hInstance, 0);
+    if (!RegisterClassEx(&wc))
+    {
+        MessageBox(NULL, "Window Registration Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+        return 0;
+    }
 
-    HWND hStatic = CreateWindow("STATIC", "Generation Mode: All", WS_VISIBLE | WS_CHILD, 250, 220, 200, 30, window, 0, wc.hInstance, 0);
+    HWND hwnd = CreateWindowEx(
+        WS_EX_CLIENTEDGE,
+        g_szClassName,
+        "Conan",
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT, 800, 600,
+        NULL, NULL, hInstance, NULL);
+
+    if (hwnd == NULL)
+    {
+        MessageBox(NULL, "Window Creation Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+        return 0;
+    }
+
+    ShowWindow(hwnd, nCmdShow);
+    UpdateWindow(hwnd);
+
+    // Message loop
+    MSG Msg;
+    while (GetMessage(&Msg, NULL, 0, 0))
+    {
+        TranslateMessage(&Msg);
+        DispatchMessage(&Msg);
+    }
+
+    return Msg.wParam;
+}
+
+void createWindow(HWND hwnd)
+{
+    CreateWindow("BUTTON", "OK", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 10, 100, 30, hwnd, (HMENU)ID_BUTTON_OK, GetModuleHandle(NULL), 0);
+    CreateWindow("EDIT", "Hello, World!", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE, 10, 50, 200, 100, hwnd, NULL, GetModuleHandle(NULL), 0);
+    CreateWindow("BUTTON", "Quit", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 160, 100, 30, hwnd, (HMENU)ID_BUTTON_QUIT, GetModuleHandle(NULL), 0);
+    CreateWindow("BUTTON", "Generate", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 200, 100, 30, hwnd, (HMENU)ID_BUTTON_GENERATE, GetModuleHandle(NULL), 0);
+    CreateWindow("BUTTON", "Toggle Thread", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 240, 100, 30, hwnd, (HMENU)ID_BUTTON_TOGGLE_BLOCK_THREAD, GetModuleHandle(NULL), 0);
+    CreateWindow("BUTTON", "Toggle Random Type", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 280, 100, 30, hwnd, (HMENU)ID_BUTTON_TOGGLE_GEN_TYPE, GetModuleHandle(NULL), 0);
+
+    HWND hStatic = CreateWindow("STATIC", "Generation Mode: All", WS_VISIBLE | WS_CHILD, 250, 220, 200, 30, hwnd, 0, GetModuleHandle(NULL), 0);
 
     srand(time(NULL));
     generateRandomImage();
@@ -248,7 +285,7 @@ void createWindow(void) {
     thrd_t modeThread;
     thrd_create(&modeThread, manageModeLabelText, modeData);
 
-    HDC hdc = GetDC(window);
+    HDC hdc = GetDC(hwnd);
     memDC = CreateCompatibleDC(hdc);
     bitmap = CreateCompatibleBitmap(hdc, IMG_WIDTH, IMG_HEIGHT);
     SelectObject(memDC, bitmap);
@@ -261,31 +298,20 @@ void createWindow(void) {
     bmi.bmiHeader.biBitCount = 24;
     bmi.bmiHeader.biCompression = BI_RGB;
 
-    renderImage(window);
-    ReleaseDC(window, hdc);
-
-    MSG msg;
-    while (1) {
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-            if (msg.message == WM_QUIT) {
-                break;
-            }
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-        Sleep(1);
-    }
-
-    DeleteObject(bitmap);
-    DeleteDC(memDC);
-    free(generationMode);
-    free(modeData);
+    renderImage(hwnd);
+    ReleaseDC(hwnd, hdc);
 }
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    switch (uMsg) {
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    switch (uMsg)
+    {
+        case WM_CREATE:
+            createWindow(hwnd);
+            break;
         case WM_COMMAND:
-            switch (LOWORD(wParam)) {
+            switch (LOWORD(wParam))
+            {
                 case ID_BUTTON_OK:
                     MessageBox(hwnd, "OK Button Clicked", "Button Click", MB_OK);
                     break;
@@ -293,16 +319,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     PostQuitMessage(0);
                     break;
                 case ID_BUTTON_GENERATE:
-                    if (rand() % 100 != 0) {
+                    if (rand() % 100 != 0)
+                    {
                         generateRandomImage();
-                    } else {
+                    }
+                    else
+                    {
                         generateCrescentImage();
                         addIris();
                     }
                     renderImage(hwnd);
                     break;
                 case ID_BUTTON_TOGGLE_BLOCK_THREAD:
-                    if (keepThreadAlive == NULL) {
+                    if (keepThreadAlive == NULL)
+                    {
                         keepThreadAlive = (int*)malloc(sizeof(int));
                         *keepThreadAlive = 1;
                         struct thread_data* data = (struct thread_data*)malloc(sizeof(struct thread_data));
@@ -310,37 +340,35 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                         data->generationMode = generationMode;
                         data->hwnd = hwnd;
                         generateRandomBlockThreaded(data);
-                    } else {
+                    }
+                    else
+                    {
                         *keepThreadAlive = 0;
                         free(keepThreadAlive);
                         keepThreadAlive = NULL;
                     }
                     break;
                 case ID_BUTTON_TOGGLE_GEN_TYPE:
-                    if (generationMode == NULL) {
+                    if (generationMode == NULL)
+                    {
                         generationMode = (int*)malloc(sizeof(int));
                         *generationMode = GENERATION_MODE_ALL;
-                    } else {
+                    }
+                    else
+                    {
                         *generationMode = (*generationMode == GENERATION_MODE_ALL) ? GENERATION_MODE_BATCH : GENERATION_MODE_ALL;
                     }
                     break;
             }
             break;
         case WM_DESTROY:
+            DeleteObject(bitmap);
+            DeleteDC(memDC);
+            free(generationMode);
             PostQuitMessage(0);
             break;
         default:
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
     return 0;
-}
-
-#ifdef _WIN32
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-#else
-int main(void)
-#endif
-{
-    createWindow();
-    return EXIT_SUCCESS;
 }
