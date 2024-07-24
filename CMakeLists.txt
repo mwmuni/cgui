@@ -17,3 +17,10 @@ target_link_libraries(${PROJECT_NAME} glu::glu)
 target_link_libraries(${PROJECT_NAME} glfw)
 target_link_libraries(${PROJECT_NAME} glm::glm)
 target_link_libraries(${PROJECT_NAME} tinycthread::tinycthread)
+
+if (WIN32)
+    # Set the subsystem to Windows to prevent the console window from appearing
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        WIN32_EXECUTABLE YES
+    )
+endif()
