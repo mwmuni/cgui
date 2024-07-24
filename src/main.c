@@ -8,6 +8,7 @@
 #include <math.h>
 #include <tinycthread.h>
 #include <immintrin.h>
+#include <sys/timeb.h>
 
 #define ID_BUTTON_OK 1
 #define ID_BUTTON_QUIT 2
@@ -86,6 +87,10 @@ int generateRandomBlock(void* arg) {
     struct thread_data* data = (struct thread_data*)arg;
     int* keepThreadAlive = data->keepThreadAlive;
     int* generationMode = data->generationMode;
+    // Get current time in ms
+    struct __timeb64 timebuffer_s;
+    struct __timeb64 timebuffer_e;
+    _ftime64(&timebuffer_s);
 
     while (*keepThreadAlive) {
         if (*generationMode == GENERATION_MODE_BATCH) {
@@ -125,7 +130,12 @@ int generateRandomBlock(void* arg) {
                 }
             }
         }
-        renderImage(data->hwnd);
+        // If 16ms has passed, render the image
+        // This is to ensure the image is rendered at 60fps
+        if (timebuffer_e.time * 1000 + timebuffer_e.millitm - timebuffer_s.time * 1000 - timebuffer_s.millitm >= 16) {
+            renderImage(data->hwnd);
+            _ftime64(&timebuffer_s);
+        }
         Sleep(1);
     }
     return 0;
