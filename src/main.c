@@ -110,22 +110,20 @@ int generateRandomBlock(void* arg) {
 
             for (int i = 0; i < BLOCK_WIDTH; ++i) {
                 for (int j = 0; j < BLOCK_HEIGHT; j += 8) {
-                    for (int k = 0; k < 3; ++k) {
-                        random_values = _mm256_set_epi32(
-                            rand() % 256, rand() % 256, rand() % 256, rand() % 256,
-                            rand() % 256, rand() % 256, rand() % 256, rand() % 256
-                        );
-                        random_values = _mm256_max_epu8(random_values, zero);
-                        random_values = _mm256_min_epu8(random_values, max_val);
+                    random_values = _mm256_set_epi32(
+                        rand() % 256, rand() % 256, rand() % 256, rand() % 256,
+                        rand() % 256, rand() % 256, rand() % 256, rand() % 256
+                    );
+                    random_values = _mm256_max_epu8(random_values, zero);
+                    random_values = _mm256_min_epu8(random_values, max_val);
 
-                        _mm256_storeu_si256((__m256i*)rand_buffer, random_values);
+                    _mm256_storeu_si256((__m256i*)rand_buffer, random_values);
 
-                        for (int l = 0; l < 8; ++l) {
-                            int r = rand_buffer[l];
-                            int g = rand_buffer[(l + 1) % 8];
-                            int b = rand_buffer[(l + 2) % 8];
-                            setPixel(i, j + l, r, g, b);
-                        }
+                    for (int l = 0; l < 8; ++l) {
+                        unsigned char r = rand_buffer[l];
+                        unsigned char g = rand_buffer[(l + 1) % 8];
+                        unsigned char b = rand_buffer[(l + 2) % 8];
+                        setPixel(i, j + l, r, g, b);
                     }
                 }
             }
